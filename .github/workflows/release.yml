@@ -20,9 +20,10 @@ jobs:
         with:
           go-version: '1.21'
       - name: Build binary
+        working-directory: ./st2pcap
         run: |
-          mkdir -p build
-          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o build/st2pcap-${{ matrix.goos }}-${{ matrix.goarch }} ./st2pcap
+          mkdir -p ../build
+          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o ../build/st2pcap-${{ matrix.goos }}-${{ matrix.goarch }} .
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
