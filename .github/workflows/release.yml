@@ -4,8 +4,6 @@ on:
   push:
     tags:
       - 'v*'
-  release:
-    types: [published]
 
 permissions:
   contents: write
@@ -40,16 +38,27 @@ jobs:
   release:
     needs: build
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || github.event_name == 'release'
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
           path: build
 
-      - name: Create release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: build/**/st2pcap-*
+      - run: |
+          nextVersion="$(gh release view --json name --jq '.name' | cut -d ' ' -f2 | awk -F. -v OFS=. '{$NF += 1 ; print}')"
+          echo 'NEXT_VERSION='$nextVersion >> $GITHUB_ENV
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - run: |
+          gh release create "v${NEXT_VERSION}" -t "Release ${NEXT_VERSION}" -n "Release ${NEXT_VERSION}" --generate-notes --latest build/**/st2pcap-*
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+
+      # - name: Create release
+      #   uses: softprops/action-gh-release@v2
+      #   with:
+      #     files: build/**/st2pcap-*
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
