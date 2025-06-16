@@ -1,6 +1,6 @@
 # st2pcap
 
-[![Build and Release](.github/workflows/release.yml/badge.svg)](../../actions/workflows/release.yml)
+[![Build and Release](https://github.com/tommybrecher/st2pcap/actions/workflows/release.yml/badge.svg)](https://github.com/tommybrecher/st2pcap/actions/workflows/release.yml)
 
 Converts SIPTrace logs to PCAP files for easy analysis in Wireshark or other network tools.
 
