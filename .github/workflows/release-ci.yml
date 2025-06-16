@@ -31,6 +31,7 @@ jobs:
 
       - name: Build binaries
         run: |
+          rm -rf build
           mkdir -p build
           for GOARCH in amd64 arm64; do
             GOOS=darwin GOARCH=$GOARCH go build -o build/st2pcap-darwin-$GOARCH .
