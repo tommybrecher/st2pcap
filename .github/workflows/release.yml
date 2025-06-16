@@ -1,0 +1,45 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux, windows, darwin]
+        goarch: [amd64, arm64]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+      - name: Build binary
+        run: |
+          mkdir -p build
+          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o build/st2pcap-${{ matrix.goos }}-${{ matrix.goarch }} ./st2pcap
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: st2pcap-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: build/st2pcap-${{ matrix.goos }}-${{ matrix.goarch }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: build
+      - name: Create release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: build/**/st2pcap-*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
