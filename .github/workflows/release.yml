@@ -24,7 +24,7 @@ jobs:
       - name: Build binary
         run: |
           mkdir -p build
-          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o build/st2pcap-${{ matrix.goos }}-${{ matrix.goarch }} ./st2pcap
+          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o build/st2pcap-${{ matrix.goos }}-${{ matrix.goarch }} .
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
