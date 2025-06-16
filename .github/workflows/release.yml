@@ -44,6 +44,11 @@ jobs:
         with:
           path: build
 
+      - name: Ensure full git history
+        run: |
+          git fetch --prune --unshallow || true
+          git fetch --tags
+
       - run: |
           nextVersion="$(gh release view --json name --jq '.name' | cut -d ' ' -f2 | awk -F. -v OFS=. '{$NF += 1 ; print}')"
           echo 'NEXT_VERSION='$nextVersion >> $GITHUB_ENV
