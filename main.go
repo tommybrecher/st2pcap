@@ -3,11 +3,11 @@ package main
 import (
 	"bufio"
 	"flag"
-	"fmt"
 	"log"
 	"net"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -16,10 +16,10 @@ import (
 	"github.com/google/gopacket/pcapgo"
 )
 
-func parseLogLine(line string) (srcIP, dstIP net.IP, srcPort, dstPort int, sipMsg []byte, ok bool) {
+func parseLogLine(line string) (srcIP, dstIP net.IP, srcPort, dstPort int, sipMsg []byte, pktTime time.Time, ok bool) {
 	parts := strings.Split(line, "|")
 	if len(parts) < 11 {
-		return nil, nil, 0, 0, nil, false
+		return nil, nil, 0, 0, nil, time.Time{}, false
 	}
 	// The SIP message is before the first pipe
 	sipMsgStr := parts[0]
@@ -39,22 +39,30 @@ func parseLogLine(line string) (srcIP, dstIP net.IP, srcPort, dstPort int, sipMs
 	srcIP = net.ParseIP(parts[5]).To4()
 	dstIP = net.ParseIP(parts[8]).To4()
 	if srcIP == nil || dstIP == nil {
-		return nil, nil, 0, 0, nil, false
+		return nil, nil, 0, 0, nil, time.Time{}, false
 	}
 	var err error
 	srcPort, err = parseInt(parts[6])
 	if err != nil {
-		return nil, nil, 0, 0, nil, false
+		return nil, nil, 0, 0, nil, time.Time{}, false
 	}
 	dstPort, err = parseInt(parts[9])
 	if err != nil {
-		return nil, nil, 0, 0, nil, false
+		return nil, nil, 0, 0, nil, time.Time{}, false
 	}
-	return srcIP, dstIP, srcPort, dstPort, sipMsg, true
+	// Parse timestamp (field 10) with sub-second precision
+	tsFloat, err := strconv.ParseFloat(parts[10], 64)
+	if err != nil {
+		return nil, nil, 0, 0, nil, time.Time{}, false
+	}
+	sec := int64(tsFloat)
+	nsec := int64((tsFloat - float64(sec)) * 1e9)
+	pktTime = time.Unix(sec, nsec)
+	return srcIP, dstIP, srcPort, dstPort, sipMsg, pktTime, true
 }
 
 func parseInt(s string) (int, error) {
-	return fmt.Sscanf(s, "%d", new(int))
+	return strconv.Atoi(s)
 }
 
 func main() {
@@ -79,7 +87,7 @@ func main() {
 	scanner := bufio.NewScanner(inFile)
 	for scanner.Scan() {
 		line := scanner.Text()
-		srcIP, dstIP, srcPort, dstPort, data, ok := parseLogLine(line)
+		srcIP, dstIP, srcPort, dstPort, data, pktTime, ok := parseLogLine(line)
 		if !ok {
 			continue
 		}
@@ -112,8 +120,7 @@ func main() {
 			log.Printf("Failed to serialize packet: %v", err)
 			continue
 		}
-		ts := time.Now()
-		writer.WritePacket(gopacket.CaptureInfo{Timestamp: ts, Length: len(buffer.Bytes()), CaptureLength: len(buffer.Bytes())}, buffer.Bytes())
+		writer.WritePacket(gopacket.CaptureInfo{Timestamp: pktTime, Length: len(buffer.Bytes()), CaptureLength: len(buffer.Bytes())}, buffer.Bytes())
 	}
 	if err := scanner.Err(); err != nil {
 		log.Fatalf("Scan error: %v", err)
