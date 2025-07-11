@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -66,18 +67,31 @@ func parseInt(s string) (int, error) {
 }
 
 func main() {
-	input := flag.String("input", "", "Input SIP log file (SIPTrace format)")
-	output := flag.String("output", "", "Output PCAP file")
+	var input, output string
+	flag.StringVar(&input, "input", "", "Input SIP log file (SIPTrace format)")
+	flag.StringVar(&input, "i", "", "Input SIP log file (SIPTrace format)")
+	flag.StringVar(&output, "output", "", "Output PCAP file")
+	flag.StringVar(&output, "o", "", "Output PCAP file")
 	flag.Parse()
-	if *input == "" {
+	if flag.NFlag() == 0 {
+		log.Println("Usage: st2pcap -i, -input <inputfile> [-o, -output <outputfile>]")
+		log.Fatal("No arguments provided")
+	}
+	if input == "" {
 		log.Fatal("Input file required")
 	}
-	inFile, err := os.Open(*input)
+	// Default output filename if not provided, strip extension
+	if output == "" {
+		base := filepath.Base(input)
+		ext := filepath.Ext(base)
+		output = strings.TrimSuffix(base, ext) + ".pcap"
+	}
+	inFile, err := os.Open(input)
 	if err != nil {
 		log.Fatalf("Failed to open input: %v", err)
 	}
 	defer inFile.Close()
-	outFile, err := os.Create(*output)
+	outFile, err := os.Create(output)
 	if err != nil {
 		log.Fatalf("Failed to create output: %v", err)
 	}
